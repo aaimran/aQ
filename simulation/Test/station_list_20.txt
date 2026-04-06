@@ -1,0 +1,16 @@
+!---begin:station_list---
+03d0 0d0 00d0
+03d0 0d0 03d0
+03d0 0d0 20d0
+03d0 0d0 37d0
+08d0 0d0 11d0
+11d0 0d0 08d0
+20d0 0d0 03d0
+20d0 0d0 20d0
+20d0 0d0 37d0
+29d0 0d0 32d0
+32d0 0d0 29d0
+37d0 0d0 03d0
+37d0 0d0 20d0
+37d0 0d0 37d0
+!---end:station_list---
