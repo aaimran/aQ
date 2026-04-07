@@ -32,7 +32,7 @@ module block
      use common, only : wp
      use mpi3dbasic, only : rank
      use grid, only : init_grid_cartesian, init_grid_curve, init_grid_from_file
-    use material, only : init_material, init_material_from_file, init_anelastic_properties, init_anelastic_Q_properties, init_anelastic_Q8_properties
+    use material, only : init_material, init_material_from_file, init_anelastic_properties, init_anelastic_Q_properties, init_anelastic_Q8_properties, init_anelastic_Qn_properties
      use plastic_material, only : init_plastic_material
      use pml, only : init_pml
      use fields, only : init_fields
@@ -126,7 +126,7 @@ module block
                 btp%lc, btp%rc, btp%profile_type, btp%profile_path, &
                 btp%topography_type, btp%topography_path, .false., use_topography, topo, ny, nz,B%nb)
         end if
-     end if
+      end if
  
      ! Initialize materials properties, either from file or based on problem type
      if (material_source == 'file') then
@@ -155,11 +155,11 @@ module block
       else
         B%M%anelastic_Q8 = .false.
       end if
-     
-     if(response == 'plastic') call init_plastic_material(B%P,B%G,B%I,problem,btp%mu_beta_eta)
- 
-     if (B%MT%use_moment_tensor) then
-         call init_moment_tensor(B%G,B%MT,infile)
+
+      if (trim(response) == 'anelastic-Qn') then
+        call init_anelastic_Qn_properties(B%M, B%G, infile)
+      else
+        B%M%anelastic_Qn = .false.
       end if
  
  

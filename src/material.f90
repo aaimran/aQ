@@ -406,6 +406,145 @@ contains
    end subroutine init_anelastic_Q8_properties
 
 
+   subroutine init_anelastic_Qn_properties(M, G, infile)
+
+      ! Initializes anelastic-Qn attenuation: configurable N mechanisms.
+      ! N, absorption band [fmin, fmax] Hz, and weights are all read from the
+      ! input file namelist &anelastic_Qn_list.  No code changes are needed to
+      ! change N or the Q model.
+      !
+      ! Namelist &anelastic_Qn_list parameters:
+      !   n_mech  : number of relaxation mechanisms (integer)
+      !   c       : Q_S = c * V_S  (Q_P = 2*Q_S, same convention as Q and Q8)
+      !   fref    : reference frequency (Hz) for unrelaxed modulus correction
+      !   fmin    : absorption band lower bound (Hz) -> tau_max = 1/(2*pi*fmin)
+      !   fmax    : absorption band upper bound (Hz) -> tau_min = 1/(2*pi*fmax)
+      !   weights : w_k values (Withers Table 1 convention: w_k = N*lambda_k);
+      !             code converts to lambda_k = w_k/N internally.
+      !             Declare up to MAX_MECH_Qn values; pad unused slots with 0.
+
+      use mpi3dcomm, only : allocate_array_body
+
+      implicit none
+
+      type(block_material), intent(inout) :: M
+      type(block_grid_t), intent(in) :: G
+      integer, intent(in) :: infile
+
+      integer, parameter :: MAX_MECH_Qn = 20
+      integer  :: n_mech, stat, i, l, j, k
+      real(kind = wp) :: c, fref, fmin, fmax
+      real(kind = wp) :: weights(MAX_MECH_Qn)
+      real(kind = wp) :: taumin, taumax, wref
+      real(kind = wp) :: val_S, val_P, denom_S, denom_P, vs, vp
+      real(kind = wp) :: mu_unrelax_S, mu_unrelax_P
+      real(kind = wp), parameter :: pi = 3.141592653589793_wp
+
+      namelist /anelastic_Qn_list/ n_mech, c, fref, fmin, fmax, weights
+
+      ! Defaults
+      n_mech  = 4
+      c       = 1.0_wp
+      fref    = 1.0_wp
+      fmin    = 0.05_wp
+      fmax    = 20.0_wp
+      weights = 0.0_wp
+
+      rewind(infile)
+      read(infile, nml=anelastic_Qn_list, iostat=stat)
+      if (stat > 0) stop 'error reading namelist anelastic_Qn_list'
+
+      M%anelastic_Qn  = .true.
+      M%n_mech_Qn     = n_mech
+      M%fref_Qn       = fref
+
+      ! Allocate tau and weight (1D, size n_mech)
+      allocate(M%tau_Qn(n_mech), M%weight_Qn(n_mech))
+
+      ! Relaxation times: Withers eq. 15 with denominator = 2*n_mech
+      taumin = 1.0_wp / (2.0_wp * pi * fmax)
+      taumax = 1.0_wp / (2.0_wp * pi * fmin)
+      do k = 1, n_mech
+         M%tau_Qn(k) = exp(log(taumin) + (2.0_wp*k - 1.0_wp) / (2.0_wp*n_mech) &
+                           * log(taumax/taumin))
+      end do
+
+      ! Convert Withers w_k -> lambda_k = w_k / n_mech
+      do k = 1, n_mech
+         M%weight_Qn(k) = weights(k) / real(n_mech, wp)
+      end do
+
+      ! Allocate Q arrays
+      call allocate_array_body(M%Qp_inv_Qn, G%C, ghost_nodes=.true.)
+      M%Qp_inv_Qn(:,:,:) = 0.0_wp
+      call allocate_array_body(M%Qs_inv_Qn, G%C, ghost_nodes=.true.)
+      M%Qs_inv_Qn(:,:,:) = 0.0_wp
+
+      ! Allocate memory variable arrays (n_mech mechanisms)
+      call allocate_array_body(M%eta4Qn,  G%C, n_mech, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta4Qn, G%C, n_mech, ghost_nodes=.true.)
+      M%eta4Qn = 0.0_wp;  M%Deta4Qn = 0.0_wp
+      call allocate_array_body(M%eta5Qn,  G%C, n_mech, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta5Qn, G%C, n_mech, ghost_nodes=.true.)
+      M%eta5Qn = 0.0_wp;  M%Deta5Qn = 0.0_wp
+      call allocate_array_body(M%eta6Qn,  G%C, n_mech, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta6Qn, G%C, n_mech, ghost_nodes=.true.)
+      M%eta6Qn = 0.0_wp;  M%Deta6Qn = 0.0_wp
+      call allocate_array_body(M%eta7Qn,  G%C, n_mech, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta7Qn, G%C, n_mech, ghost_nodes=.true.)
+      M%eta7Qn = 0.0_wp;  M%Deta7Qn = 0.0_wp
+      call allocate_array_body(M%eta8Qn,  G%C, n_mech, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta8Qn, G%C, n_mech, ghost_nodes=.true.)
+      M%eta8Qn = 0.0_wp;  M%Deta8Qn = 0.0_wp
+      call allocate_array_body(M%eta9Qn,  G%C, n_mech, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta9Qn, G%C, n_mech, ghost_nodes=.true.)
+      M%eta9Qn = 0.0_wp;  M%Deta9Qn = 0.0_wp
+
+      ! Compute Q_S and Q_P from velocity ratio
+      do i = G%C%mq, G%C%pq
+         do j = G%C%mr, G%C%pr
+            do k = G%C%ms, G%C%ps
+               M%Qs_inv_Qn(i,j,k) = 1.0_wp / (c * sqrt(M%M(i,j,k,2)/M%M(i,j,k,3)))
+               M%Qp_inv_Qn(i,j,k) = 0.5_wp * M%Qs_inv_Qn(i,j,k)
+            end do
+         end do
+      end do
+
+      ! Correct unrelaxed moduli so relaxed (low-freq) velocity matches input
+      wref = 2.0_wp * pi * fref
+
+      do i = G%C%mq, G%C%pq
+         do j = G%C%mr, G%C%pr
+            do k = G%C%ms, G%C%ps
+
+               val_S = 0.0_wp
+               val_P = 0.0_wp
+               do l = 1, n_mech
+                  denom_S = (wref**2 * M%tau_Qn(l)**2 + 1.0_wp) &
+                             * (1.0_wp / M%Qs_inv_Qn(i,j,k))
+                  denom_P = (wref**2 * M%tau_Qn(l)**2 + 1.0_wp) &
+                             * (1.0_wp / M%Qp_inv_Qn(i,j,k))
+                  val_S = val_S + M%weight_Qn(l) / denom_S
+                  val_P = val_P + M%weight_Qn(l) / denom_P
+               end do
+
+               vs = sqrt(M%M(i,j,k,2) / M%M(i,j,k,3))
+               vp = sqrt((M%M(i,j,k,1) + 2.0_wp*M%M(i,j,k,2)) / M%M(i,j,k,3))
+               mu_unrelax_S = M%M(i,j,k,3) * vs**2 / (1.0_wp - val_S)
+               mu_unrelax_P = M%M(i,j,k,3) * vp**2 / (1.0_wp - val_P)
+               vs = sqrt(mu_unrelax_S / M%M(i,j,k,3))
+               vp = sqrt(mu_unrelax_P / M%M(i,j,k,3))
+
+               M%M(i,j,k,2) = vs**2 * M%M(i,j,k,3)
+               M%M(i,j,k,1) = vp**2 * M%M(i,j,k,3) - 2.0_wp * M%M(i,j,k,2)
+
+            end do
+         end do
+      end do
+
+   end subroutine init_anelastic_Qn_properties
+
+
   !> initialize material properties
   subroutine init_material(M, G, I, physics,problem, rho_s_p, nb)
 

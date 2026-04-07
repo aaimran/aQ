@@ -16428,6 +16428,43 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                               end do
                                         end if
 
+                                        if (M%anelastic_Qn) then
+                                              F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                        
+                                              tr = DFx(1) + DFy(2) + DFz(3)
+                                              do i = 1, M%n_mech_Qn
+                                                       M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                            ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                            + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                             - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                            - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                        
+                                                       M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                            ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                            + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                             - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                            - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                        
+                                                       M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                            ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                            + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                             - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                            - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                        
+                                                       M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                            (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                       M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                            (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                       M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                            (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                              end do
+                                        end if
+
              end do
           end do
        end do
@@ -16592,6 +16629,43 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                             (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                        M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                             (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
+                                              end do
+                                        end if
+
+                                        if (M%anelastic_Qn) then
+                                              F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                              F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                        
+                                              tr = DFx(1) + DFy(2) + DFz(3)
+                                              do i = 1, M%n_mech_Qn
+                                                       M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                            ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                            + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                             - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                            - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                        
+                                                       M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                            ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                            + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                             - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                            - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                        
+                                                       M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                            ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                            + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                             - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                            - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                        
+                                                       M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                            (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                       M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                            (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                       M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                            (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                               end do
                                         end if
                
@@ -16856,6 +16930,43 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                     end do
                  end if
 
+                 if (M%anelastic_Qn) then
+                       F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                 
+                       tr = DFx(1) + DFy(2) + DFz(3)
+                       do i = 1, M%n_mech_Qn
+                                M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                       end do
+                 end if
+
                                          if (M%anelastic) then
                                                   F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - (M%eta4(x,y,z,1) + M%eta4(x,y,z,2) + M%eta4(x,y,z,3) + M%eta4(x,y,z,4))
                                                   F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - (M%eta5(x,y,z,1) + M%eta5(x,y,z,2) + M%eta5(x,y,z,3) + M%eta5(x,y,z,4))
@@ -16969,6 +17080,43 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                         M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
+                                         end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
                                          end if
                  
               end do
@@ -17151,6 +17299,43 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                         M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
+                                         end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
                                          end if
  
               end do
@@ -17418,6 +17603,43 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
                                          end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
+                                         end if
                  
               end do
            end do
@@ -17599,6 +17821,43 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                         M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
+                                         end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
                                          end if
  
               end do
@@ -17868,6 +18127,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
                                          end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
+                                         end if
                  
               end do
            end do
@@ -18049,6 +18345,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                         M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
+                                         end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
                                          end if
  
               end do
@@ -18333,6 +18666,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                      (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                           end do
                  end if
+
+                 if (M%anelastic_Qn) then
+                       F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                 
+                       tr = DFx(1) + DFy(2) + DFz(3)
+                       do i = 1, M%n_mech_Qn
+                                M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                       end do
+                 end if
                  
               end do
            end do
@@ -18514,6 +18884,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                 M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                      (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                           end do
+                 end if
+
+                 if (M%anelastic_Qn) then
+                       F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                 
+                       tr = DFx(1) + DFy(2) + DFz(3)
+                       do i = 1, M%n_mech_Qn
+                                M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                       end do
                  end if
  
               end do
@@ -18801,6 +19208,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                     (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                          end do
                 end if
+
+                if (M%anelastic_Qn) then
+                      F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                
+                      tr = DFx(1) + DFy(2) + DFz(3)
+                      do i = 1, M%n_mech_Qn
+                               M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                    ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                    + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                     - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                    - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                
+                               M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                    ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                    + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                     - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                    - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                
+                               M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                    ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                    + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                     - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                    - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                
+                               M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                    (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                               M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                    (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                               M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                    (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                      end do
+                end if
                 
              end do
           end do
@@ -18982,6 +19426,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                     (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                          end do
+                end if
+
+                if (M%anelastic_Qn) then
+                      F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                      F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                
+                      tr = DFx(1) + DFy(2) + DFz(3)
+                      do i = 1, M%n_mech_Qn
+                               M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                    ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                    + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                     - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                    - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                
+                               M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                    ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                    + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                     - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                    - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                
+                               M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                    ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                    + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                     - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                    - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                
+                               M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                    (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                               M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                    (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                               M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                    (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                      end do
                 end if
 
              end do
@@ -19252,6 +19733,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
                                          end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
+                                         end if
                  
               end do
            end do
@@ -19433,6 +19951,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                         M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
+                                         end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
                                          end if
  
               end do
@@ -19707,6 +20262,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
                                          end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
+                                         end if
                  
               end do
            end do
@@ -19888,6 +20480,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                         M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
+                                         end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
                                          end if
  
               end do
@@ -20161,6 +20790,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
                                          end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
+                                         end if
                  
               end do
            end do
@@ -20336,6 +21002,43 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                        M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                             (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                     end do
+                 end if
+
+                 if (M%anelastic_Qn) then
+                       F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                 
+                       tr = DFx(1) + DFy(2) + DFz(3)
+                       do i = 1, M%n_mech_Qn
+                                M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                       end do
                  end if
  
               end do
@@ -20611,6 +21314,43 @@ case('curvilinear') ! locked or welded interface
                        (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                end do
             end if
+
+            if (M%anelastic_Qn) then
+                  F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+            
+                  tr = DFx(1) + DFy(2) + DFz(3)
+                  do i = 1, M%n_mech_Qn
+                           M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                 - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+            
+                           M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                 - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+            
+                           M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                 - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+            
+                           M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                           M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                           M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                  end do
+            end if
             
          end do
       end do
@@ -20792,6 +21532,43 @@ case('cartesian') ! carteian mesh
                   M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                        (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                end do
+            end if
+
+            if (M%anelastic_Qn) then
+                  F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                  F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+            
+                  tr = DFx(1) + DFy(2) + DFz(3)
+                  do i = 1, M%n_mech_Qn
+                           M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                 - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+            
+                           M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                 - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+            
+                           M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                 - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+            
+                           M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                           M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                           M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                  end do
             end if
 
          end do
@@ -21059,6 +21836,43 @@ do z = mz, pz
                     (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
             end do
          end if
+
+         if (M%anelastic_Qn) then
+               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+         
+               tr = DFx(1) + DFy(2) + DFz(3)
+               do i = 1, M%n_mech_Qn
+                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+               end do
+         end if
          
       end do
    end do
@@ -21234,6 +22048,43 @@ do z = mz, pz
                M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                     (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
             end do
+         end if
+
+         if (M%anelastic_Qn) then
+               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+         
+               tr = DFx(1) + DFy(2) + DFz(3)
+               do i = 1, M%n_mech_Qn
+                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+               end do
          end if
 
       end do
@@ -21502,6 +22353,43 @@ do z = mz, pz
                     (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
             end do
          end if
+
+         if (M%anelastic_Qn) then
+               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+         
+               tr = DFx(1) + DFy(2) + DFz(3)
+               do i = 1, M%n_mech_Qn
+                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+               end do
+         end if
          
       end do
    end do
@@ -21677,6 +22565,43 @@ do z = mz, pz
                M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                     (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
             end do
+         end if
+
+         if (M%anelastic_Qn) then
+               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+         
+               tr = DFx(1) + DFy(2) + DFz(3)
+               do i = 1, M%n_mech_Qn
+                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+         
+                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+               end do
          end if
 
       end do
@@ -21953,6 +22878,43 @@ end select
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
                                          end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
+                                         end if
                  
               end do
            end do
@@ -22129,6 +23091,43 @@ end select
                        M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                             (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                     end do
+                 end if
+
+                 if (M%anelastic_Qn) then
+                       F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                 
+                       tr = DFx(1) + DFy(2) + DFz(3)
+                       do i = 1, M%n_mech_Qn
+                                M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                       end do
                  end if
 
               end do
@@ -22404,6 +23403,43 @@ end select
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
                                          end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
+                                         end if
                  
               end do
            end do
@@ -22586,6 +23622,43 @@ end select
                                                         M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
+                                         end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
                                          end if
 
               end do
@@ -22859,6 +23932,43 @@ end select
                                                         M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
+                                         end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
                                          end if
                  
               end do
@@ -23200,6 +24310,43 @@ end select
                                                              (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                                                   end do
                                          end if
+
+                                         if (M%anelastic_Qn) then
+                                               F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                                               F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                                         
+                                               tr = DFx(1) + DFy(2) + DFz(3)
+                                               do i = 1, M%n_mech_Qn
+                                                        M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                                             ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                                             + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                                              - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                                             - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                                         
+                                                        M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                                        M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                               end do
+                                         end if
                  
               end do
            end do
@@ -23375,6 +24522,43 @@ end select
                        M%Deta9Q8(x,y,z,i) = M%Deta9Q8(x,y,z,i) + ( &
                             (M%weight_Q8(i)*M%M(x,y,z,2)*M%Qs_inv_Q8(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Q8(x,y,z,i)) / M%tau_Q8(i) )
                     end do
+                 end if
+
+                 if (M%anelastic_Qn) then
+                       F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - sum(M%eta4Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 5) = F%F%DF(x, y, z, 5) - sum(M%eta5Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 6) = F%F%DF(x, y, z, 6) - sum(M%eta6Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 7) = F%F%DF(x, y, z, 7) - sum(M%eta7Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 8) = F%F%DF(x, y, z, 8) - sum(M%eta8Qn(x,y,z,1:M%n_mech_Qn))
+                       F%F%DF(x, y, z, 9) = F%F%DF(x, y, z, 9) - sum(M%eta9Qn(x,y,z,1:M%n_mech_Qn))
+                 
+                       tr = DFx(1) + DFy(2) + DFz(3)
+                       do i = 1, M%n_mech_Qn
+                                M%Deta4Qn(x,y,z,i) = M%Deta4Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFx(1) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta4Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta5Qn(x,y,z,i) = M%Deta5Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFy(2) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta5Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta6Qn(x,y,z,i) = M%Deta6Qn(x,y,z,i) + ( &
+                                     ( (M%weight_Qn(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z))*DFz(3) &
+                                     + (M%weight_Qn(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qn(x,y,z) &
+                                                                      - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z) ) * tr ) ) &
+                                     - M%eta6Qn(x,y,z,i) ) / M%tau_Qn(i)
+                 
+                                M%Deta7Qn(x,y,z,i) = M%Deta7Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFy(1) + DFx(2)) - M%eta7Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta8Qn(x,y,z,i) = M%Deta8Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(1) + DFx(3)) - M%eta8Qn(x,y,z,i)) / M%tau_Qn(i) )
+                                M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
+                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
+                       end do
                  end if
 
               end do
