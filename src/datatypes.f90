@@ -60,6 +60,17 @@ module datatypes
       ! Six stress-component memory variables for anelastic-Q (4 mechanisms each)
       real(kind = wp), dimension(:,:,:,:), allocatable :: eta4Q,eta5Q,eta6Q,eta7Q,eta8Q,eta9Q
       real(kind = wp), dimension(:,:,:,:), allocatable :: Deta4Q,Deta5Q,Deta6Q,Deta7Q,Deta8Q,Deta9Q
+
+      ! --- anelastic-Q8: 8-mechanism broadband attenuation (response == 'anelastic-Q8')
+      logical :: anelastic_Q8 = .false.
+      integer :: n_mechanism_Q8 = 8
+      real(kind = wp) :: fref_Q8 = 1.0_wp
+      real(kind = wp), dimension(:,:,:), allocatable :: Qp_inv_Q8, Qs_inv_Q8
+      real(kind = wp), dimension(8) :: tau_Q8    = 0.0_wp
+      real(kind = wp), dimension(8) :: weight_Q8 = 0.0_wp
+      ! Six stress-component memory variables for anelastic-Q8 (8 mechanisms each)
+      real(kind = wp), dimension(:,:,:,:), allocatable :: eta4Q8,eta5Q8,eta6Q8,eta7Q8,eta8Q8,eta9Q8
+      real(kind = wp), dimension(:,:,:,:), allocatable :: Deta4Q8,Deta5Q8,Deta6Q8,Deta7Q8,Deta8Q8,Deta9Q8
    end type block_material
  
    !> block_plastic datatype to hold Drucker-Prager plasticity variables

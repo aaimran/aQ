@@ -273,6 +273,139 @@ contains
    end subroutine init_anelastic_Q_properties
 
 
+   subroutine init_anelastic_Q8_properties(M, G, infile)
+
+      ! Initializes anelastic-Q8 attenuation: N=8 mechanisms with correct tau spacing.
+      ! Mirrors init_anelastic_Q_properties but uses 8 relaxation mechanisms,
+      ! providing improved constant-Q approximation over [0.05, 20] Hz.
+      ! Namelist &anelastic_Q8_list parameters (same meaning as anelastic_Q_list):
+      !   c     : Q_S = c * V_S  (Q_P = 2*Q_S, hard-coded ratio)
+      !   fref  : reference frequency (Hz) for unrelaxed modulus correction (default 1.0)
+
+      use mpi3dcomm, only : allocate_array_body
+
+      implicit none
+
+      type(block_material), intent(inout) :: M
+      type(block_grid_t), intent(in) :: G
+      integer, intent(in) :: infile
+
+      real(kind = wp) :: c, fref
+      real(kind = wp) :: taumin, taumax, wref
+      real(kind = wp) :: val_S, val_P, denom_S, denom_P, vs, vp, mu_unrelax_S, mu_unrelax_P
+      integer :: stat, i, l, j, k, N
+      real(kind = wp), parameter :: pi = 3.141592653589793_wp
+
+      namelist /anelastic_Q8_list/ c, fref
+
+      ! Defaults
+      c    = 1.0_wp
+      fref = 1.0_wp
+
+      M%anelastic_Q8 = .true.
+      N = 8
+      M%n_mechanism_Q8 = N
+      M%fref_Q8 = fref
+
+      rewind(infile)
+      read(infile, nml=anelastic_Q8_list, iostat=stat)
+      if (stat > 0) stop 'error reading namelist anelastic_Q8_list'
+
+      M%fref_Q8 = fref
+
+      ! Allocate Q arrays
+      call allocate_array_body(M%Qp_inv_Q8, G%C, ghost_nodes=.true.)
+      M%Qp_inv_Q8(:,:,:) = 0.0_wp
+      call allocate_array_body(M%Qs_inv_Q8, G%C, ghost_nodes=.true.)
+      M%Qs_inv_Q8(:,:,:) = 0.0_wp
+
+      ! Allocate memory variable arrays (N=8 mechanisms)
+      call allocate_array_body(M%eta4Q8,  G%C, N, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta4Q8, G%C, N, ghost_nodes=.true.)
+      M%eta4Q8 = 0.0_wp;  M%Deta4Q8 = 0.0_wp
+      call allocate_array_body(M%eta5Q8,  G%C, N, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta5Q8, G%C, N, ghost_nodes=.true.)
+      M%eta5Q8 = 0.0_wp;  M%Deta5Q8 = 0.0_wp
+      call allocate_array_body(M%eta6Q8,  G%C, N, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta6Q8, G%C, N, ghost_nodes=.true.)
+      M%eta6Q8 = 0.0_wp;  M%Deta6Q8 = 0.0_wp
+      call allocate_array_body(M%eta7Q8,  G%C, N, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta7Q8, G%C, N, ghost_nodes=.true.)
+      M%eta7Q8 = 0.0_wp;  M%Deta7Q8 = 0.0_wp
+      call allocate_array_body(M%eta8Q8,  G%C, N, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta8Q8, G%C, N, ghost_nodes=.true.)
+      M%eta8Q8 = 0.0_wp;  M%Deta8Q8 = 0.0_wp
+      call allocate_array_body(M%eta9Q8,  G%C, N, ghost_nodes=.true.)
+      call allocate_array_body(M%Deta9Q8, G%C, N, ghost_nodes=.true.)
+      M%eta9Q8 = 0.0_wp;  M%Deta9Q8 = 0.0_wp
+
+      ! Compute Q_S and Q_P from velocity ratio
+      do i = G%C%mq, G%C%pq
+         do j = G%C%mr, G%C%pr
+            do k = G%C%ms, G%C%ps
+               M%Qs_inv_Q8(i,j,k) = 1.0_wp / (c * sqrt(M%M(i,j,k,2)/M%M(i,j,k,3)))
+               M%Qp_inv_Q8(i,j,k) = 0.5_wp * M%Qs_inv_Q8(i,j,k)
+            end do
+         end do
+      end do
+
+      ! Relaxation times: correct formula with denominator = 2*N = 16
+      ! Band: [0.05, 20] Hz
+      ! tau_k = exp( ln(tau_min) + (2k-1)/(2N) * ln(tau_max/tau_min) )
+      taumin = 1.0_wp / (2.0_wp * pi * 20.0_wp)   ! ~ 0.007958 s
+      taumax = 1.0_wp / (2.0_wp * pi * 0.05_wp)   ! ~ 3.183099 s
+
+      do k = 1, N
+         M%tau_Q8(k) = exp(log(taumin) + (2.0_wp*k - 1.0_wp) / (2.0_wp*N) &
+                           * log(taumax/taumin))
+      end do
+
+      ! NNLS-fitted weights for gamma=0 (constant-Q), Q0*=1 (scale by 1/Q_S at runtime)
+      ! Fitted over [0.05, 20] Hz with N=8; max Q error < 5%, mean < 0.1%
+      M%weight_Q8(1) = 1.685770_wp
+      M%weight_Q8(2) = 0.682533_wp
+      M%weight_Q8(3) = 0.769700_wp
+      M%weight_Q8(4) = 0.850033_wp
+      M%weight_Q8(5) = 0.916467_wp
+      M%weight_Q8(6) = 0.971533_wp
+      M%weight_Q8(7) = 1.067600_wp
+      M%weight_Q8(8) = 1.528133_wp
+
+      ! Correct unrelaxed moduli so relaxed (low-freq) velocity matches input
+      wref = 2.0_wp * pi * fref
+
+      do i = G%C%mq, G%C%pq
+         do j = G%C%mr, G%C%pr
+            do k = G%C%ms, G%C%ps
+
+               val_S = 0.0_wp
+               val_P = 0.0_wp
+               do l = 1, N
+                  denom_S = (wref**2 * M%tau_Q8(l)**2 + 1.0_wp) &
+                             * (1.0_wp / M%Qs_inv_Q8(i,j,k))
+                  denom_P = (wref**2 * M%tau_Q8(l)**2 + 1.0_wp) &
+                             * (1.0_wp / M%Qp_inv_Q8(i,j,k))
+                  val_S = val_S + M%weight_Q8(l) / denom_S
+                  val_P = val_P + M%weight_Q8(l) / denom_P
+               end do
+
+               vs = sqrt(M%M(i,j,k,2) / M%M(i,j,k,3))
+               vp = sqrt((M%M(i,j,k,1) + 2.0_wp*M%M(i,j,k,2)) / M%M(i,j,k,3))
+               mu_unrelax_S = M%M(i,j,k,3) * vs**2 / (1.0_wp - val_S)
+               mu_unrelax_P = M%M(i,j,k,3) * vp**2 / (1.0_wp - val_P)
+               vs = sqrt(mu_unrelax_S / M%M(i,j,k,3))
+               vp = sqrt(mu_unrelax_P / M%M(i,j,k,3))
+
+               M%M(i,j,k,2) = vs**2 * M%M(i,j,k,3)
+               M%M(i,j,k,1) = vp**2 * M%M(i,j,k,3) - 2.0_wp * M%M(i,j,k,2)
+
+            end do
+         end do
+      end do
+
+   end subroutine init_anelastic_Q8_properties
+
+
   !> initialize material properties
   subroutine init_material(M, G, I, physics,problem, rho_s_p, nb)
 

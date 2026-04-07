@@ -74,7 +74,15 @@ contains
          F%M%Deta8Q = A*F%M%Deta8Q
          F%M%Deta9Q = A*F%M%Deta9Q
       end if
-    
+      if (F%M%anelastic_Q8) then
+         F%M%Deta4Q8 = A*F%M%Deta4Q8
+         F%M%Deta5Q8 = A*F%M%Deta5Q8
+         F%M%Deta6Q8 = A*F%M%Deta6Q8
+         F%M%Deta7Q8 = A*F%M%Deta7Q8
+         F%M%Deta8Q8 = A*F%M%Deta8Q8
+         F%M%Deta9Q8 = A*F%M%Deta9Q8
+      end if
+
     if( F%PMLB(1)%pml .EQV. .TRUE.) then
        if(F%G%C%mq .le.  F%PMLB(1)%N_pml) then
           F%PMLB(1)%DQ = A*F%PMLB(1)%DQ
@@ -142,6 +150,14 @@ contains
          F%M%eta7Q = F%M%eta7Q + dt*F%M%Deta7Q
          F%M%eta8Q = F%M%eta8Q + dt*F%M%Deta8Q
          F%M%eta9Q = F%M%eta9Q + dt*F%M%Deta9Q
+      end if
+      if (F%M%anelastic_Q8) then
+         F%M%eta4Q8 = F%M%eta4Q8 + dt*F%M%Deta4Q8
+         F%M%eta5Q8 = F%M%eta5Q8 + dt*F%M%Deta5Q8
+         F%M%eta6Q8 = F%M%eta6Q8 + dt*F%M%Deta6Q8
+         F%M%eta7Q8 = F%M%eta7Q8 + dt*F%M%Deta7Q8
+         F%M%eta8Q8 = F%M%eta8Q8 + dt*F%M%Deta8Q8
+         F%M%eta9Q8 = F%M%eta9Q8 + dt*F%M%Deta9Q8
       end if
 
     if( F%PMLB(1)%pml .EQV. .TRUE.) then

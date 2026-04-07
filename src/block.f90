@@ -32,7 +32,7 @@ module block
      use common, only : wp
      use mpi3dbasic, only : rank
      use grid, only : init_grid_cartesian, init_grid_curve, init_grid_from_file
-    use material, only : init_material, init_material_from_file, init_anelastic_properties, init_anelastic_Q_properties
+    use material, only : init_material, init_material_from_file, init_anelastic_properties, init_anelastic_Q_properties, init_anelastic_Q8_properties
      use plastic_material, only : init_plastic_material
      use pml, only : init_pml
      use fields, only : init_fields
@@ -148,6 +148,12 @@ module block
         call init_anelastic_Q_properties(B%M, B%G, infile)
       else
         B%M%anelastic_Q = .false.
+      end if
+
+      if (trim(response) == 'anelastic-Q8') then
+        call init_anelastic_Q8_properties(B%M, B%G, infile)
+      else
+        B%M%anelastic_Q8 = .false.
       end if
      
      if(response == 'plastic') call init_plastic_material(B%P,B%G,B%I,problem,btp%mu_beta_eta)
