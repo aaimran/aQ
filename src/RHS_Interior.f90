@@ -254,6 +254,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
              
              ! compute pml rhs to be used in runge-kutta time-step
              ! and append pml auxiliary functions to elastic-rates DU
@@ -337,6 +338,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                
                     ! compute pml rhs to be used in runge-kutta time-step
                     ! and append pml auxiliary functions to elastic-rates DU
@@ -419,6 +421,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                
                     ! compute pml rhs to be used in runge-kutta time-step
                     ! and append pml auxiliary functions to elastic-rates DU
@@ -502,6 +505,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                
                     ! compute pml rhs to be used in runge-kutta time-step
                     ! and append pml auxiliary functions to elastic-rates DU
@@ -584,6 +588,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                
                     ! compute pml rhs to be used in runge-kutta time-step
                     ! and append pml auxiliary functions to elastic-rates DU
@@ -674,6 +679,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -762,6 +768,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -851,6 +858,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -940,6 +948,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -1026,6 +1035,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                
                     ! compute pml rhs to be used in runge-kutta time-step
                     ! and append pml auxiliary functions to elastic-rates DU
@@ -1102,6 +1112,7 @@ contains
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -1177,6 +1188,7 @@ if (F%order .eq. 5) then
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -1266,6 +1278,7 @@ if (F%order .eq. 6) then
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -1355,6 +1368,7 @@ if (F%order .eq. 7) then
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -1445,6 +1459,7 @@ if (F%order .eq. 7) then
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -1534,6 +1549,7 @@ if (F%order .eq. 7) then
                if (M%anelastic_Q) call apply_anelastic_Q_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Q8) call apply_anelastic_Q8_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                if (M%anelastic_Qn) call apply_anelastic_Qn_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
+               if (M%anelastic_Qcg) call apply_anelastic_Qcg_point_dispatch(F, M, G, x, y, z, Ux, Uy, Uz, DU)
                  
                  ! compute pml rhs to be used in runge-kutta time-step
                  ! and append pml auxiliary functions to elastic-rates DU
@@ -2819,6 +2835,156 @@ if (F%order .eq. 7) then
           call apply_anelastic_Qn_point(M, x, y, z, Ux, Uy, Uz, DU)
 
      end subroutine apply_anelastic_Qn_point_dispatch
+
+
+     subroutine apply_anelastic_Qcg_point(M, x, y, z, Ux, Uy, Uz, DU)
+
+          ! anelastic-Qcg: spatially coarse-grained N-mechanism kernel.
+          ! Stress subtraction: trilinear interpolation of eta from the 8 surrounding
+          ! coarse-grid corners to the fine-grid point (x,y,z).
+          ! Deta update: only executed when (x,y,z) coincides with a coarse-grid node
+          ! (i.e., both fine and coarse indices are aligned), so updates are exact.
+          ! cg_factor=1 reproduces anelastic-Qn exactly.
+
+          use common, only : wp
+          use datatypes, only : block_material
+
+          implicit none
+
+          type(block_material), intent(inout) :: M
+          integer, intent(in) :: x, y, z
+          real(kind = wp), intent(in) :: Ux(:), Uy(:), Uz(:)
+          real(kind = wp), intent(inout) :: DU(:)
+
+          integer :: i, iq, ir, is, iq1, ir1, is1
+          integer :: cg, iq0, ir0, is0
+          real(kind = wp) :: fx, fy, fz
+          real(kind = wp) :: c000, c001, c010, c011, c100, c101, c110, c111
+          real(kind = wp) :: eta4_xyz, eta5_xyz, eta6_xyz
+          real(kind = wp) :: eta7_xyz, eta8_xyz, eta9_xyz
+          real(kind = wp) :: tr
+
+          cg = M%cg_factor_Qcg
+
+          ! Coarse-grid lower corner (0-based) for this fine point
+          iq = (x - M%mcg_q) / cg
+          ir = (y - M%mcg_r) / cg
+          is = (z - M%mcg_s) / cg
+
+          ! Fractional offsets toward upper corner [0,1)
+          fx = real(mod(x - M%mcg_q, cg), wp) / real(cg, wp)
+          fy = real(mod(y - M%mcg_r, cg), wp) / real(cg, wp)
+          fz = real(mod(z - M%mcg_s, cg), wp) / real(cg, wp)
+
+          ! 1-based coarse indices with ghost offset; clamp upper corner to array bound
+          iq0 = iq + 1;  iq1 = min(iq0 + 1, M%ncg_q)
+          ir0 = ir + 1;  ir1 = min(ir0 + 1, M%ncg_r)
+          is0 = is + 1;  is1 = min(is0 + 1, M%ncg_s)
+
+          ! Trilinear weights
+          c000 = (1.0_wp-fx)*(1.0_wp-fy)*(1.0_wp-fz)
+          c001 = (1.0_wp-fx)*(1.0_wp-fy)*fz
+          c010 = (1.0_wp-fx)*fy*(1.0_wp-fz)
+          c011 = (1.0_wp-fx)*fy*fz
+          c100 = fx*(1.0_wp-fy)*(1.0_wp-fz)
+          c101 = fx*(1.0_wp-fy)*fz
+          c110 = fx*fy*(1.0_wp-fz)
+          c111 = fx*fy*fz
+
+          ! ---- Stress subtraction: sum interpolated eta over all mechanisms
+          do i = 1, M%n_mech_Qcg
+               eta4_xyz = c000*M%eta4Qcg(iq0,ir0,is0,i) + c001*M%eta4Qcg(iq0,ir0,is1,i) &
+                        + c010*M%eta4Qcg(iq0,ir1,is0,i) + c011*M%eta4Qcg(iq0,ir1,is1,i) &
+                        + c100*M%eta4Qcg(iq1,ir0,is0,i) + c101*M%eta4Qcg(iq1,ir0,is1,i) &
+                        + c110*M%eta4Qcg(iq1,ir1,is0,i) + c111*M%eta4Qcg(iq1,ir1,is1,i)
+               eta5_xyz = c000*M%eta5Qcg(iq0,ir0,is0,i) + c001*M%eta5Qcg(iq0,ir0,is1,i) &
+                        + c010*M%eta5Qcg(iq0,ir1,is0,i) + c011*M%eta5Qcg(iq0,ir1,is1,i) &
+                        + c100*M%eta5Qcg(iq1,ir0,is0,i) + c101*M%eta5Qcg(iq1,ir0,is1,i) &
+                        + c110*M%eta5Qcg(iq1,ir1,is0,i) + c111*M%eta5Qcg(iq1,ir1,is1,i)
+               eta6_xyz = c000*M%eta6Qcg(iq0,ir0,is0,i) + c001*M%eta6Qcg(iq0,ir0,is1,i) &
+                        + c010*M%eta6Qcg(iq0,ir1,is0,i) + c011*M%eta6Qcg(iq0,ir1,is1,i) &
+                        + c100*M%eta6Qcg(iq1,ir0,is0,i) + c101*M%eta6Qcg(iq1,ir0,is1,i) &
+                        + c110*M%eta6Qcg(iq1,ir1,is0,i) + c111*M%eta6Qcg(iq1,ir1,is1,i)
+               eta7_xyz = c000*M%eta7Qcg(iq0,ir0,is0,i) + c001*M%eta7Qcg(iq0,ir0,is1,i) &
+                        + c010*M%eta7Qcg(iq0,ir1,is0,i) + c011*M%eta7Qcg(iq0,ir1,is1,i) &
+                        + c100*M%eta7Qcg(iq1,ir0,is0,i) + c101*M%eta7Qcg(iq1,ir0,is1,i) &
+                        + c110*M%eta7Qcg(iq1,ir1,is0,i) + c111*M%eta7Qcg(iq1,ir1,is1,i)
+               eta8_xyz = c000*M%eta8Qcg(iq0,ir0,is0,i) + c001*M%eta8Qcg(iq0,ir0,is1,i) &
+                        + c010*M%eta8Qcg(iq0,ir1,is0,i) + c011*M%eta8Qcg(iq0,ir1,is1,i) &
+                        + c100*M%eta8Qcg(iq1,ir0,is0,i) + c101*M%eta8Qcg(iq1,ir0,is1,i) &
+                        + c110*M%eta8Qcg(iq1,ir1,is0,i) + c111*M%eta8Qcg(iq1,ir1,is1,i)
+               eta9_xyz = c000*M%eta9Qcg(iq0,ir0,is0,i) + c001*M%eta9Qcg(iq0,ir0,is1,i) &
+                        + c010*M%eta9Qcg(iq0,ir1,is0,i) + c011*M%eta9Qcg(iq0,ir1,is1,i) &
+                        + c100*M%eta9Qcg(iq1,ir0,is0,i) + c101*M%eta9Qcg(iq1,ir0,is1,i) &
+                        + c110*M%eta9Qcg(iq1,ir1,is0,i) + c111*M%eta9Qcg(iq1,ir1,is1,i)
+               DU(4) = DU(4) - eta4_xyz
+               DU(5) = DU(5) - eta5_xyz
+               DU(6) = DU(6) - eta6_xyz
+               DU(7) = DU(7) - eta7_xyz
+               DU(8) = DU(8) - eta8_xyz
+               DU(9) = DU(9) - eta9_xyz
+          end do
+
+          ! ---- Deta update: only at coarse-grid nodes
+          if (mod(x - M%mcg_q, cg) == 0 .and. &
+              mod(y - M%mcg_r, cg) == 0 .and. &
+              mod(z - M%mcg_s, cg) == 0) then
+
+               tr = Ux(1) + Uy(2) + Uz(3)
+
+               do i = 1, M%n_mech_Qcg
+                    M%Deta4Qcg(iq0,ir0,is0,i) = M%Deta4Qcg(iq0,ir0,is0,i) + ( &
+                         ( (M%weight_Qcg(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z))*Ux(1) &
+                         + (M%weight_Qcg(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qcg(x,y,z) &
+                                                          - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z) ) * tr ) ) &
+                         - M%eta4Qcg(iq0,ir0,is0,i) ) / M%tau_Qcg(i)
+
+                    M%Deta5Qcg(iq0,ir0,is0,i) = M%Deta5Qcg(iq0,ir0,is0,i) + ( &
+                         ( (M%weight_Qcg(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z))*Uy(2) &
+                         + (M%weight_Qcg(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qcg(x,y,z) &
+                                                          - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z) ) * tr ) ) &
+                         - M%eta5Qcg(iq0,ir0,is0,i) ) / M%tau_Qcg(i)
+
+                    M%Deta6Qcg(iq0,ir0,is0,i) = M%Deta6Qcg(iq0,ir0,is0,i) + ( &
+                         ( (M%weight_Qcg(i)*2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z))*Uz(3) &
+                         + (M%weight_Qcg(i) * ( (M%M(x,y,z,1)+2.0_wp*M%M(x,y,z,2))*M%Qp_inv_Qcg(x,y,z) &
+                                                          - 2.0_wp*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z) ) * tr ) ) &
+                         - M%eta6Qcg(iq0,ir0,is0,i) ) / M%tau_Qcg(i)
+
+                    M%Deta7Qcg(iq0,ir0,is0,i) = M%Deta7Qcg(iq0,ir0,is0,i) + ( &
+                         (M%weight_Qcg(i)*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z)*(Uy(1) + Ux(2)) &
+                         - M%eta7Qcg(iq0,ir0,is0,i)) / M%tau_Qcg(i) )
+                    M%Deta8Qcg(iq0,ir0,is0,i) = M%Deta8Qcg(iq0,ir0,is0,i) + ( &
+                         (M%weight_Qcg(i)*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z)*(Uz(1) + Ux(3)) &
+                         - M%eta8Qcg(iq0,ir0,is0,i)) / M%tau_Qcg(i) )
+                    M%Deta9Qcg(iq0,ir0,is0,i) = M%Deta9Qcg(iq0,ir0,is0,i) + ( &
+                         (M%weight_Qcg(i)*M%M(x,y,z,2)*M%Qs_inv_Qcg(x,y,z)*(Uz(2) + Uy(3)) &
+                         - M%eta9Qcg(iq0,ir0,is0,i)) / M%tau_Qcg(i) )
+               end do
+
+          end if
+
+     end subroutine apply_anelastic_Qcg_point
+
+
+     subroutine apply_anelastic_Qcg_point_dispatch(B, M, G, x, y, z, Ux, Uy, Uz, DU)
+
+          use common, only : wp
+          use datatypes, only : block_type, block_grid_t, block_material
+
+          implicit none
+
+          type(block_type), intent(in) :: B
+          type(block_grid_t), intent(in) :: G
+          type(block_material), intent(inout) :: M
+          integer, intent(in) :: x, y, z
+          real(kind = wp), intent(in) :: Ux(:), Uy(:), Uz(:)
+          real(kind = wp), intent(inout) :: DU(:)
+
+          ! Note: PML variant not yet implemented for anelastic-Qcg; falls back to standard.
+          call apply_anelastic_Qcg_point(M, x, y, z, Ux, Uy, Uz, DU)
+
+     end subroutine apply_anelastic_Qcg_point_dispatch
 
 
 end module RHS_Interior

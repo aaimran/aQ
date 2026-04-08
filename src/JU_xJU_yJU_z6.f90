@@ -16163,6 +16163,11 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
     real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
     real(kind = wp) :: a1,a2,a3,a4
      real(kind = wp) :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
 
 
     mx = G%C%mq
@@ -16464,6 +16469,112 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                               end do
                                         end if
+                                        if (M%anelastic_Qcg) then
+                                              cgN  = M%cg_factor_Qcg
+                                              iqcg = (x - M%mcg_q) / cgN
+                                              ircg = (y - M%mcg_r) / cgN
+                                              iscg = (z - M%mcg_s) / cgN
+                                              fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                              fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                              fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                              iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                              ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                              is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                              c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                              c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                              c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                              c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                              c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                              c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                              c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                              c111 = fxcg*fycg*fzcg
+                                              F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                 c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                 c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                 c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                 c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                 c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                 c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                  mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                    tr    = DFx(1) + DFy(2) + DFz(3)
+                                                    mu_cg = M%M(x,y,z,2)
+                                                    lam_cg= M%M(x,y,z,1)
+                                                    qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                    qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                    do i = 1, M%n_mech_Qcg
+                                                       w_cg = M%weight_Qcg(i)
+                                                       M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                            +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                            - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                       M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                            +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                            - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                       M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                            +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                            - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                       M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                            - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                       M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                            - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                       M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                            - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                    end do
+                                              end if
+                                        end if
 
              end do
           end do
@@ -16668,6 +16779,112 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                             (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                               end do
                                         end if
+                                        if (M%anelastic_Qcg) then
+                                              cgN  = M%cg_factor_Qcg
+                                              iqcg = (x - M%mcg_q) / cgN
+                                              ircg = (y - M%mcg_r) / cgN
+                                              iscg = (z - M%mcg_s) / cgN
+                                              fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                              fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                              fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                              iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                              ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                              is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                              c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                              c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                              c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                              c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                              c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                              c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                              c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                              c111 = fxcg*fycg*fzcg
+                                              F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                 c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                 c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                 c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                 c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                 c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                 c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                 +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                 +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                              if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                  mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                    tr    = DFx(1) + DFy(2) + DFz(3)
+                                                    mu_cg = M%M(x,y,z,2)
+                                                    lam_cg= M%M(x,y,z,1)
+                                                    qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                    qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                    do i = 1, M%n_mech_Qcg
+                                                       w_cg = M%weight_Qcg(i)
+                                                       M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                            +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                            - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                       M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                            +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                            - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                       M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                            +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                            - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                       M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                            - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                       M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                            - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                       M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                            (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                            - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                    end do
+                                              end if
+                                        end if
                
 
              end do
@@ -16706,6 +16923,11 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
  
  
      !allocate constant values
@@ -16966,6 +17188,112 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                      (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                        end do
                  end if
+                 if (M%anelastic_Qcg) then
+                       cgN  = M%cg_factor_Qcg
+                       iqcg = (x - M%mcg_q) / cgN
+                       ircg = (y - M%mcg_r) / cgN
+                       iscg = (z - M%mcg_s) / cgN
+                       fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                       fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                       fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                       iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                       ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                       is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                       c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                       c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                       c011 = (1.0_wp-fxcg)*fycg*fzcg
+                       c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c101 = fxcg*(1.0_wp-fycg)*fzcg
+                       c110 = fxcg*fycg*(1.0_wp-fzcg)
+                       c111 = fxcg*fycg*fzcg
+                       F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                          c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                          c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                          c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                          c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                          c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                          c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       if (mod(x-M%mcg_q,cgN)==0 .and. &
+                           mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                             tr    = DFx(1) + DFy(2) + DFz(3)
+                             mu_cg = M%M(x,y,z,2)
+                             lam_cg= M%M(x,y,z,1)
+                             qp_cg = M%Qp_inv_Qcg(x,y,z)
+                             qs_cg = M%Qs_inv_Qcg(x,y,z)
+                             do i = 1, M%n_mech_Qcg
+                                w_cg = M%weight_Qcg(i)
+                                M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                     - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                     - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                     - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                             end do
+                       end if
+                 end if
 
                                          if (M%anelastic) then
                                                   F%F%DF(x, y, z, 4) = F%F%DF(x, y, z, 4) - (M%eta4(x,y,z,1) + M%eta4(x,y,z,2) + M%eta4(x,y,z,3) + M%eta4(x,y,z,4))
@@ -17117,6 +17445,112 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                         M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
+                                         end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
                                          end if
                  
               end do
@@ -17337,6 +17771,112 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
  
               end do
            end do
@@ -17374,6 +17914,11 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
  
  
      !allocate constant values
@@ -17640,6 +18185,112 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -17859,6 +18510,112 @@ Ju_x(1:n) = (1.0_wp/hx)*Jq_xU(1:n) + (1.0_wp/hy)*Jr_xU(1:n) + (1.0_wp/hz)*Js_xU(
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
  
               end do
            end do
@@ -17898,6 +18655,11 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
  
  
      !allocate constant values
@@ -18164,6 +18926,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -18383,6 +19251,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
  
               end do
            end do
@@ -18418,6 +19392,11 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp) :: a1,a2,a3,a4
      real(kind = wp) :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
  
  
      mx = G%C%mq
@@ -18703,6 +19682,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                      (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                        end do
                  end if
+                 if (M%anelastic_Qcg) then
+                       cgN  = M%cg_factor_Qcg
+                       iqcg = (x - M%mcg_q) / cgN
+                       ircg = (y - M%mcg_r) / cgN
+                       iscg = (z - M%mcg_s) / cgN
+                       fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                       fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                       fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                       iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                       ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                       is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                       c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                       c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                       c011 = (1.0_wp-fxcg)*fycg*fzcg
+                       c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c101 = fxcg*(1.0_wp-fycg)*fzcg
+                       c110 = fxcg*fycg*(1.0_wp-fzcg)
+                       c111 = fxcg*fycg*fzcg
+                       F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                          c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                          c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                          c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                          c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                          c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                          c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       if (mod(x-M%mcg_q,cgN)==0 .and. &
+                           mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                             tr    = DFx(1) + DFy(2) + DFz(3)
+                             mu_cg = M%M(x,y,z,2)
+                             lam_cg= M%M(x,y,z,1)
+                             qp_cg = M%Qp_inv_Qcg(x,y,z)
+                             qs_cg = M%Qs_inv_Qcg(x,y,z)
+                             do i = 1, M%n_mech_Qcg
+                                w_cg = M%weight_Qcg(i)
+                                M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                     - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                     - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                     - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                             end do
+                       end if
+                 end if
                  
               end do
            end do
@@ -18922,6 +20007,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                      (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                        end do
                  end if
+                 if (M%anelastic_Qcg) then
+                       cgN  = M%cg_factor_Qcg
+                       iqcg = (x - M%mcg_q) / cgN
+                       ircg = (y - M%mcg_r) / cgN
+                       iscg = (z - M%mcg_s) / cgN
+                       fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                       fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                       fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                       iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                       ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                       is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                       c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                       c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                       c011 = (1.0_wp-fxcg)*fycg*fzcg
+                       c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c101 = fxcg*(1.0_wp-fycg)*fzcg
+                       c110 = fxcg*fycg*(1.0_wp-fzcg)
+                       c111 = fxcg*fycg*fzcg
+                       F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                          c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                          c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                          c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                          c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                          c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                          c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       if (mod(x-M%mcg_q,cgN)==0 .and. &
+                           mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                             tr    = DFx(1) + DFy(2) + DFz(3)
+                             mu_cg = M%M(x,y,z,2)
+                             lam_cg= M%M(x,y,z,1)
+                             qp_cg = M%Qp_inv_Qcg(x,y,z)
+                             qs_cg = M%Qs_inv_Qcg(x,y,z)
+                             do i = 1, M%n_mech_Qcg
+                                w_cg = M%weight_Qcg(i)
+                                M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                     - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                     - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                     - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                             end do
+                       end if
+                 end if
  
               end do
            end do
@@ -18960,6 +20151,11 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
     real(kind=wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind=wp) :: a1,a2,a3,a4
      real(kind=wp) :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
      
 
     mx = G%C%mq
@@ -19245,6 +20441,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                       end do
                 end if
+                if (M%anelastic_Qcg) then
+                      cgN  = M%cg_factor_Qcg
+                      iqcg = (x - M%mcg_q) / cgN
+                      ircg = (y - M%mcg_r) / cgN
+                      iscg = (z - M%mcg_s) / cgN
+                      fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                      fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                      fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                      iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                      ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                      is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                      c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                      c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                      c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                      c011 = (1.0_wp-fxcg)*fycg*fzcg
+                      c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                      c101 = fxcg*(1.0_wp-fycg)*fzcg
+                      c110 = fxcg*fycg*(1.0_wp-fzcg)
+                      c111 = fxcg*fycg*fzcg
+                      F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                         c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                         c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                         c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                         c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                         c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                         c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      if (mod(x-M%mcg_q,cgN)==0 .and. &
+                          mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                            tr    = DFx(1) + DFy(2) + DFz(3)
+                            mu_cg = M%M(x,y,z,2)
+                            lam_cg= M%M(x,y,z,1)
+                            qp_cg = M%Qp_inv_Qcg(x,y,z)
+                            qs_cg = M%Qs_inv_Qcg(x,y,z)
+                            do i = 1, M%n_mech_Qcg
+                               w_cg = M%weight_Qcg(i)
+                               M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                    +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                    - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                               M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                    +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                    - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                               M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                    +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                    - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                               M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                    - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                               M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                    - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                               M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                    - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                            end do
+                      end if
+                end if
                 
              end do
           end do
@@ -19464,6 +20766,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                     (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                       end do
                 end if
+                if (M%anelastic_Qcg) then
+                      cgN  = M%cg_factor_Qcg
+                      iqcg = (x - M%mcg_q) / cgN
+                      ircg = (y - M%mcg_r) / cgN
+                      iscg = (z - M%mcg_s) / cgN
+                      fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                      fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                      fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                      iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                      ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                      is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                      c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                      c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                      c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                      c011 = (1.0_wp-fxcg)*fycg*fzcg
+                      c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                      c101 = fxcg*(1.0_wp-fycg)*fzcg
+                      c110 = fxcg*fycg*(1.0_wp-fzcg)
+                      c111 = fxcg*fycg*fzcg
+                      F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                         c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                         c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                         c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                         c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                         c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                         c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                         +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                         +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                         +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                         +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                      if (mod(x-M%mcg_q,cgN)==0 .and. &
+                          mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                            tr    = DFx(1) + DFy(2) + DFz(3)
+                            mu_cg = M%M(x,y,z,2)
+                            lam_cg= M%M(x,y,z,1)
+                            qp_cg = M%Qp_inv_Qcg(x,y,z)
+                            qs_cg = M%Qs_inv_Qcg(x,y,z)
+                            do i = 1, M%n_mech_Qcg
+                               w_cg = M%weight_Qcg(i)
+                               M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                    +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                    - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                               M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                    +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                    - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                               M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                    +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                    - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                               M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                    - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                               M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                    - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                               M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                    (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                    - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                            end do
+                      end if
+                end if
 
              end do
           end do
@@ -19504,6 +20912,11 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
  
  
      !allocate constant values
@@ -19770,6 +21183,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -19989,6 +21508,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
  
               end do
            end do
@@ -20032,6 +21657,11 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
  
  
      !allocate constant values
@@ -20299,6 +21929,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -20518,6 +22254,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
  
               end do
            end do
@@ -20561,6 +22403,11 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
  
  
      !allocate constant values
@@ -20827,6 +22674,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -21040,6 +22993,112 @@ subroutine JJU_x4_interior_upwind(F, G, M, type_of_mesh)
                                      (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                        end do
                  end if
+                 if (M%anelastic_Qcg) then
+                       cgN  = M%cg_factor_Qcg
+                       iqcg = (x - M%mcg_q) / cgN
+                       ircg = (y - M%mcg_r) / cgN
+                       iscg = (z - M%mcg_s) / cgN
+                       fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                       fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                       fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                       iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                       ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                       is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                       c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                       c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                       c011 = (1.0_wp-fxcg)*fycg*fzcg
+                       c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c101 = fxcg*(1.0_wp-fycg)*fzcg
+                       c110 = fxcg*fycg*(1.0_wp-fzcg)
+                       c111 = fxcg*fycg*fzcg
+                       F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                          c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                          c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                          c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                          c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                          c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                          c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       if (mod(x-M%mcg_q,cgN)==0 .and. &
+                           mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                             tr    = DFx(1) + DFy(2) + DFz(3)
+                             mu_cg = M%M(x,y,z,2)
+                             lam_cg= M%M(x,y,z,1)
+                             qp_cg = M%Qp_inv_Qcg(x,y,z)
+                             qs_cg = M%Qs_inv_Qcg(x,y,z)
+                             do i = 1, M%n_mech_Qcg
+                                w_cg = M%weight_Qcg(i)
+                                M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                     - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                     - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                     - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                             end do
+                       end if
+                 end if
  
               end do
            end do
@@ -21091,6 +23150,11 @@ real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
 real(kind = wp) :: a1,a2,a3,a4
 integer :: i
 real(kind = wp) :: tr
+integer            :: cgN, iqcg, ircg, iscg
+integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+real(kind = wp)    :: fxcg, fycg, fzcg
+real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
 
 
 mx = G%C%mq
@@ -21351,6 +23415,112 @@ case('curvilinear') ! locked or welded interface
                                 (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                   end do
             end if
+            if (M%anelastic_Qcg) then
+                  cgN  = M%cg_factor_Qcg
+                  iqcg = (x - M%mcg_q) / cgN
+                  ircg = (y - M%mcg_r) / cgN
+                  iscg = (z - M%mcg_s) / cgN
+                  fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                  fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                  fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                  iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                  ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                  is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                  c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                  c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                  c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                  c011 = (1.0_wp-fxcg)*fycg*fzcg
+                  c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                  c101 = fxcg*(1.0_wp-fycg)*fzcg
+                  c110 = fxcg*fycg*(1.0_wp-fzcg)
+                  c111 = fxcg*fycg*fzcg
+                  F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                     c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                     c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                     c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                     c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                     c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                     c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  if (mod(x-M%mcg_q,cgN)==0 .and. &
+                      mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                        tr    = DFx(1) + DFy(2) + DFz(3)
+                        mu_cg = M%M(x,y,z,2)
+                        lam_cg= M%M(x,y,z,1)
+                        qp_cg = M%Qp_inv_Qcg(x,y,z)
+                        qs_cg = M%Qs_inv_Qcg(x,y,z)
+                        do i = 1, M%n_mech_Qcg
+                           w_cg = M%weight_Qcg(i)
+                           M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                           M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                           M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                           M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                           M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                           M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        end do
+                  end if
+            end if
             
          end do
       end do
@@ -21570,6 +23740,112 @@ case('cartesian') ! carteian mesh
                                 (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                   end do
             end if
+            if (M%anelastic_Qcg) then
+                  cgN  = M%cg_factor_Qcg
+                  iqcg = (x - M%mcg_q) / cgN
+                  ircg = (y - M%mcg_r) / cgN
+                  iscg = (z - M%mcg_s) / cgN
+                  fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                  fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                  fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                  iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                  ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                  is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                  c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                  c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                  c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                  c011 = (1.0_wp-fxcg)*fycg*fzcg
+                  c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                  c101 = fxcg*(1.0_wp-fycg)*fzcg
+                  c110 = fxcg*fycg*(1.0_wp-fzcg)
+                  c111 = fxcg*fycg*fzcg
+                  F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                     c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                     c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                     c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                     c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                     c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                     c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                     +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                     +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                     +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                     +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                  if (mod(x-M%mcg_q,cgN)==0 .and. &
+                      mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                        tr    = DFx(1) + DFy(2) + DFz(3)
+                        mu_cg = M%M(x,y,z,2)
+                        lam_cg= M%M(x,y,z,1)
+                        qp_cg = M%Qp_inv_Qcg(x,y,z)
+                        qs_cg = M%Qs_inv_Qcg(x,y,z)
+                        do i = 1, M%n_mech_Qcg
+                           w_cg = M%weight_Qcg(i)
+                           M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                           M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                           M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                           M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                           M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                           M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        end do
+                  end if
+            end if
 
          end do
       end do
@@ -21613,6 +23889,11 @@ real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
 real(kind = wp)                :: a1,a2,a3,a4
 integer                         :: i
 real(kind = wp)                 :: tr
+integer            :: cgN, iqcg, ircg, iscg
+integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+real(kind = wp)    :: fxcg, fycg, fzcg
+real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
 
 
 !allocate constant values
@@ -21873,6 +24154,112 @@ do z = mz, pz
                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                end do
          end if
+         if (M%anelastic_Qcg) then
+               cgN  = M%cg_factor_Qcg
+               iqcg = (x - M%mcg_q) / cgN
+               ircg = (y - M%mcg_r) / cgN
+               iscg = (z - M%mcg_s) / cgN
+               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+               c011 = (1.0_wp-fxcg)*fycg*fzcg
+               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+               c101 = fxcg*(1.0_wp-fycg)*fzcg
+               c110 = fxcg*fycg*(1.0_wp-fzcg)
+               c111 = fxcg*fycg*fzcg
+               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                     tr    = DFx(1) + DFy(2) + DFz(3)
+                     mu_cg = M%M(x,y,z,2)
+                     lam_cg= M%M(x,y,z,1)
+                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                     do i = 1, M%n_mech_Qcg
+                        w_cg = M%weight_Qcg(i)
+                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                     end do
+               end if
+         end if
          
       end do
    end do
@@ -22085,6 +24472,112 @@ do z = mz, pz
                         M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                end do
+         end if
+         if (M%anelastic_Qcg) then
+               cgN  = M%cg_factor_Qcg
+               iqcg = (x - M%mcg_q) / cgN
+               ircg = (y - M%mcg_r) / cgN
+               iscg = (z - M%mcg_s) / cgN
+               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+               c011 = (1.0_wp-fxcg)*fycg*fzcg
+               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+               c101 = fxcg*(1.0_wp-fycg)*fzcg
+               c110 = fxcg*fycg*(1.0_wp-fzcg)
+               c111 = fxcg*fycg*fzcg
+               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                     tr    = DFx(1) + DFy(2) + DFz(3)
+                     mu_cg = M%M(x,y,z,2)
+                     lam_cg= M%M(x,y,z,1)
+                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                     do i = 1, M%n_mech_Qcg
+                        w_cg = M%weight_Qcg(i)
+                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                     end do
+               end if
          end if
 
       end do
@@ -22130,6 +24623,11 @@ real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
 real(kind = wp)                :: a1,a2,a3,a4
 integer                         :: i
 real(kind = wp)                 :: tr
+integer            :: cgN, iqcg, ircg, iscg
+integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+real(kind = wp)    :: fxcg, fycg, fzcg
+real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
 
 
 !allocate constant values
@@ -22390,6 +24888,112 @@ do z = mz, pz
                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                end do
          end if
+         if (M%anelastic_Qcg) then
+               cgN  = M%cg_factor_Qcg
+               iqcg = (x - M%mcg_q) / cgN
+               ircg = (y - M%mcg_r) / cgN
+               iscg = (z - M%mcg_s) / cgN
+               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+               c011 = (1.0_wp-fxcg)*fycg*fzcg
+               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+               c101 = fxcg*(1.0_wp-fycg)*fzcg
+               c110 = fxcg*fycg*(1.0_wp-fzcg)
+               c111 = fxcg*fycg*fzcg
+               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                     tr    = DFx(1) + DFy(2) + DFz(3)
+                     mu_cg = M%M(x,y,z,2)
+                     lam_cg= M%M(x,y,z,1)
+                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                     do i = 1, M%n_mech_Qcg
+                        w_cg = M%weight_Qcg(i)
+                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                     end do
+               end if
+         end if
          
       end do
    end do
@@ -22602,6 +25206,112 @@ do z = mz, pz
                         M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                end do
+         end if
+         if (M%anelastic_Qcg) then
+               cgN  = M%cg_factor_Qcg
+               iqcg = (x - M%mcg_q) / cgN
+               ircg = (y - M%mcg_r) / cgN
+               iscg = (z - M%mcg_s) / cgN
+               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+               c011 = (1.0_wp-fxcg)*fycg*fzcg
+               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+               c101 = fxcg*(1.0_wp-fycg)*fzcg
+               c110 = fxcg*fycg*(1.0_wp-fzcg)
+               c111 = fxcg*fycg*fzcg
+               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                     tr    = DFx(1) + DFy(2) + DFz(3)
+                     mu_cg = M%M(x,y,z,2)
+                     lam_cg= M%M(x,y,z,1)
+                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                     do i = 1, M%n_mech_Qcg
+                        w_cg = M%weight_Qcg(i)
+                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                     end do
+               end if
          end if
 
       end do
@@ -22649,6 +25359,11 @@ end select
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
 
 
      !allocate constant values
@@ -22915,6 +25630,112 @@ end select
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -23129,6 +25950,112 @@ end select
                                      (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                        end do
                  end if
+                 if (M%anelastic_Qcg) then
+                       cgN  = M%cg_factor_Qcg
+                       iqcg = (x - M%mcg_q) / cgN
+                       ircg = (y - M%mcg_r) / cgN
+                       iscg = (z - M%mcg_s) / cgN
+                       fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                       fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                       fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                       iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                       ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                       is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                       c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                       c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                       c011 = (1.0_wp-fxcg)*fycg*fzcg
+                       c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c101 = fxcg*(1.0_wp-fycg)*fzcg
+                       c110 = fxcg*fycg*(1.0_wp-fzcg)
+                       c111 = fxcg*fycg*fzcg
+                       F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                          c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                          c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                          c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                          c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                          c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                          c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       if (mod(x-M%mcg_q,cgN)==0 .and. &
+                           mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                             tr    = DFx(1) + DFy(2) + DFz(3)
+                             mu_cg = M%M(x,y,z,2)
+                             lam_cg= M%M(x,y,z,1)
+                             qp_cg = M%Qp_inv_Qcg(x,y,z)
+                             qs_cg = M%Qs_inv_Qcg(x,y,z)
+                             do i = 1, M%n_mech_Qcg
+                                w_cg = M%weight_Qcg(i)
+                                M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                     - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                     - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                     - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                             end do
+                       end if
+                 end if
 
               end do
            end do
@@ -23174,6 +26101,11 @@ end select
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
 
 
      !allocate constant values
@@ -23440,6 +26372,112 @@ end select
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -23660,6 +26698,112 @@ end select
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
 
               end do
            end do
@@ -23704,6 +26848,11 @@ end select
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
  
  
      !allocate constant values
@@ -23970,6 +27119,112 @@ end select
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -24081,6 +27336,11 @@ end select
      real(kind = wp),dimension(1:9) :: DFx,DFy,DFz
      real(kind = wp)                :: a1,a2,a3,a4
      real(kind = wp)                :: tr
+     integer            :: cgN, iqcg, ircg, iscg
+     integer            :: iq0cg, ir0cg, is0cg, iq1cg, ir1cg, is1cg
+     real(kind = wp)    :: fxcg, fycg, fzcg
+     real(kind = wp)    :: c000, c001, c010, c011, c100, c101, c110, c111
+     real(kind = wp)    :: w_cg, qp_cg, qs_cg, mu_cg, lam_cg
 
 
      !allocate constant values
@@ -24347,6 +27607,112 @@ end select
                                                              (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                                                end do
                                          end if
+                                         if (M%anelastic_Qcg) then
+                                               cgN  = M%cg_factor_Qcg
+                                               iqcg = (x - M%mcg_q) / cgN
+                                               ircg = (y - M%mcg_r) / cgN
+                                               iscg = (z - M%mcg_s) / cgN
+                                               fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                                               fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                                               fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                                               iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                                               ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                                               is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                                               c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                                               c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                                               c011 = (1.0_wp-fxcg)*fycg*fzcg
+                                               c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                                               c101 = fxcg*(1.0_wp-fycg)*fzcg
+                                               c110 = fxcg*fycg*(1.0_wp-fzcg)
+                                               c111 = fxcg*fycg*fzcg
+                                               F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                                                  c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                                                  c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                                                  c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                                                  c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                                                  c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                                                  c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                                                  +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                                                  +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                                               if (mod(x-M%mcg_q,cgN)==0 .and. &
+                                                   mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                                                     tr    = DFx(1) + DFy(2) + DFz(3)
+                                                     mu_cg = M%M(x,y,z,2)
+                                                     lam_cg= M%M(x,y,z,1)
+                                                     qp_cg = M%Qp_inv_Qcg(x,y,z)
+                                                     qs_cg = M%Qs_inv_Qcg(x,y,z)
+                                                     do i = 1, M%n_mech_Qcg
+                                                        w_cg = M%weight_Qcg(i)
+                                                        M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                                             +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                                             - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                                        M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                                             - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                                             - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                        M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                                             (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                                             - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                                     end do
+                                               end if
+                                         end if
                  
               end do
            end do
@@ -24559,6 +27925,112 @@ end select
                                 M%Deta9Qn(x,y,z,i) = M%Deta9Qn(x,y,z,i) + ( &
                                      (M%weight_Qn(i)*M%M(x,y,z,2)*M%Qs_inv_Qn(x,y,z)*(DFz(2) + DFy(3)) - M%eta9Qn(x,y,z,i)) / M%tau_Qn(i) )
                        end do
+                 end if
+                 if (M%anelastic_Qcg) then
+                       cgN  = M%cg_factor_Qcg
+                       iqcg = (x - M%mcg_q) / cgN
+                       ircg = (y - M%mcg_r) / cgN
+                       iscg = (z - M%mcg_s) / cgN
+                       fxcg = real(mod(x - M%mcg_q, cgN), wp) / real(cgN, wp)
+                       fycg = real(mod(y - M%mcg_r, cgN), wp) / real(cgN, wp)
+                       fzcg = real(mod(z - M%mcg_s, cgN), wp) / real(cgN, wp)
+                       iq0cg = iqcg + 1; iq1cg = min(iq0cg + 1, M%ncg_q)
+                       ir0cg = ircg + 1; ir1cg = min(ir0cg + 1, M%ncg_r)
+                       is0cg = iscg + 1; is1cg = min(is0cg + 1, M%ncg_s)
+                       c000 = (1.0_wp-fxcg)*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c001 = (1.0_wp-fxcg)*(1.0_wp-fycg)*fzcg
+                       c010 = (1.0_wp-fxcg)*fycg*(1.0_wp-fzcg)
+                       c011 = (1.0_wp-fxcg)*fycg*fzcg
+                       c100 = fxcg*(1.0_wp-fycg)*(1.0_wp-fzcg)
+                       c101 = fxcg*(1.0_wp-fycg)*fzcg
+                       c110 = fxcg*fycg*(1.0_wp-fzcg)
+                       c111 = fxcg*fycg*fzcg
+                       F%F%DF(x,y,z,4) = F%F%DF(x,y,z,4) - sum( &
+                          c000*M%eta4Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta4Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta4Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta4Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta4Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta4Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta4Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta4Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,5) = F%F%DF(x,y,z,5) - sum( &
+                          c000*M%eta5Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta5Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta5Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta5Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta5Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta5Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta5Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta5Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,6) = F%F%DF(x,y,z,6) - sum( &
+                          c000*M%eta6Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta6Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta6Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta6Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta6Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta6Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta6Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta6Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,7) = F%F%DF(x,y,z,7) - sum( &
+                          c000*M%eta7Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta7Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta7Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta7Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta7Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta7Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta7Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta7Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,8) = F%F%DF(x,y,z,8) - sum( &
+                          c000*M%eta8Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta8Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta8Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta8Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta8Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta8Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta8Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta8Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       F%F%DF(x,y,z,9) = F%F%DF(x,y,z,9) - sum( &
+                          c000*M%eta9Qcg(iq0cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c001*M%eta9Qcg(iq0cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c010*M%eta9Qcg(iq0cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c011*M%eta9Qcg(iq0cg,ir1cg,is1cg,1:M%n_mech_Qcg) &
+                          +c100*M%eta9Qcg(iq1cg,ir0cg,is0cg,1:M%n_mech_Qcg) &
+                          +c101*M%eta9Qcg(iq1cg,ir0cg,is1cg,1:M%n_mech_Qcg) &
+                          +c110*M%eta9Qcg(iq1cg,ir1cg,is0cg,1:M%n_mech_Qcg) &
+                          +c111*M%eta9Qcg(iq1cg,ir1cg,is1cg,1:M%n_mech_Qcg) )
+                       if (mod(x-M%mcg_q,cgN)==0 .and. &
+                           mod(y-M%mcg_r,cgN)==0 .and. mod(z-M%mcg_s,cgN)==0) then
+                             tr    = DFx(1) + DFy(2) + DFz(3)
+                             mu_cg = M%M(x,y,z,2)
+                             lam_cg= M%M(x,y,z,1)
+                             qp_cg = M%Qp_inv_Qcg(x,y,z)
+                             qs_cg = M%Qs_inv_Qcg(x,y,z)
+                             do i = 1, M%n_mech_Qcg
+                                w_cg = M%weight_Qcg(i)
+                                M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta4Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFx(1) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta4Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta5Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFy(2) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta5Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta6Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*2.0_wp*mu_cg*qs_cg*DFz(3) &
+                                     +(w_cg*(lam_cg+2.0_wp*mu_cg)*qp_cg - w_cg*2.0_wp*mu_cg*qs_cg)*tr) &
+                                     - M%eta6Qcg(iq0cg,ir0cg,is0cg,i) ) / M%tau_Qcg(i)
+                                M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta7Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFy(1)+DFx(2)) &
+                                     - M%eta7Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta8Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(1)+DFx(3)) &
+                                     - M%eta8Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                                M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) = M%Deta9Qcg(iq0cg,ir0cg,is0cg,i) + ( &
+                                     (w_cg*mu_cg*qs_cg*(DFz(2)+DFy(3)) &
+                                     - M%eta9Qcg(iq0cg,ir0cg,is0cg,i)) / M%tau_Qcg(i) )
+                             end do
+                       end if
                  end if
 
               end do

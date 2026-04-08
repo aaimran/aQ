@@ -545,6 +545,160 @@ contains
    end subroutine init_anelastic_Qn_properties
 
 
+   subroutine init_anelastic_Qcg_properties(M, G, infile)
+
+      ! Initializes anelastic-Qcg attenuation: spatially coarse-grained N-mechanism memory variables.
+      ! Memory variables eta/Deta are stored on a coarse grid of spacing cg_factor*h, reducing
+      ! memory by cg_factor^3 at the cost of trilinear interpolation at runtime.
+      ! cg_factor=1 is identical to anelastic-Qn (no coarsening).
+      !
+      ! Namelist &anelastic_Qcg_list parameters (same as Qn plus cg_factor):
+      !   n_mech    : number of relaxation mechanisms
+      !   c         : Q_S = c * V_S  (Q_P = 2*Q_S)
+      !   fref      : reference frequency (Hz) for unrelaxed modulus correction
+      !   fmin      : absorption band lower bound (Hz) -> tau_max = 1/(2*pi*fmin)
+      !   fmax      : absorption band upper bound (Hz) -> tau_min = 1/(2*pi*fmax)
+      !   cg_factor : spatial coarsening factor (1 = full resolution, 2 = half, 4 = quarter)
+      !   weights   : w_k values (Withers Table 1: w_k = N*lambda_k); code converts internally.
+
+      use mpi3dcomm, only : allocate_array_body
+
+      implicit none
+
+      type(block_material), intent(inout) :: M
+      type(block_grid_t), intent(in) :: G
+      integer, intent(in) :: infile
+
+      integer, parameter :: MAX_MECH_Qcg = 20
+      integer  :: n_mech, cg_factor, stat, i, l, j, k
+      integer  :: ncq, ncr, ncs, nb
+      integer  :: mcq_b, pcq_b, mcr_b, pcr_b, mcs_b, pcs_b
+      real(kind = wp) :: c, fref, fmin, fmax
+      real(kind = wp) :: weights(MAX_MECH_Qcg)
+      real(kind = wp) :: taumin, taumax, wref
+      real(kind = wp) :: val_S, val_P, denom_S, denom_P, vs, vp
+      real(kind = wp) :: mu_unrelax_S, mu_unrelax_P
+      real(kind = wp), parameter :: pi = 3.141592653589793_wp
+
+      namelist /anelastic_Qcg_list/ n_mech, c, fref, fmin, fmax, cg_factor, weights
+
+      ! Defaults
+      n_mech    = 4
+      c         = 1.0_wp
+      fref      = 1.0_wp
+      fmin      = 0.05_wp
+      fmax      = 20.0_wp
+      cg_factor = 1
+      weights   = 0.0_wp
+
+      rewind(infile)
+      read(infile, nml=anelastic_Qcg_list, iostat=stat)
+      if (stat > 0) stop 'error reading namelist anelastic_Qcg_list'
+
+      M%anelastic_Qcg  = .true.
+      M%n_mech_Qcg     = n_mech
+      M%cg_factor_Qcg  = cg_factor
+      M%fref_Qcg       = fref
+
+      ! Allocate tau and weight (1D, size n_mech)
+      allocate(M%tau_Qcg(n_mech), M%weight_Qcg(n_mech))
+
+      ! Relaxation times: Withers eq. 15 with denominator = 2*n_mech
+      taumin = 1.0_wp / (2.0_wp * pi * fmax)
+      taumax = 1.0_wp / (2.0_wp * pi * fmin)
+      do k = 1, n_mech
+         M%tau_Qcg(k) = exp(log(taumin) + (2.0_wp*k - 1.0_wp) / (2.0_wp*n_mech) &
+                            * log(taumax/taumin))
+      end do
+
+      ! Convert Withers w_k -> lambda_k = w_k / n_mech
+      do k = 1, n_mech
+         M%weight_Qcg(k) = weights(k) / real(n_mech, wp)
+      end do
+
+      ! Allocate Q_inv arrays on the full fine grid (needed at every RHS call)
+      call allocate_array_body(M%Qp_inv_Qcg, G%C, ghost_nodes=.true.)
+      M%Qp_inv_Qcg(:,:,:) = 0.0_wp
+      call allocate_array_body(M%Qs_inv_Qcg, G%C, ghost_nodes=.true.)
+      M%Qs_inv_Qcg(:,:,:) = 0.0_wp
+
+      ! Coarse-grid geometry: store origin and point counts
+      nb  = G%C%nb
+      M%mcg_q = G%C%mq;  M%ncg_q = (G%C%pq - G%C%mq) / cg_factor + 1
+      M%mcg_r = G%C%mr;  M%ncg_r = (G%C%pr - G%C%mr) / cg_factor + 1
+      M%mcg_s = G%C%ms;  M%ncg_s = (G%C%ps - G%C%ms) / cg_factor + 1
+
+      ! Coarse-grid bounds with ghost margin so MPI halo exchange works
+      ncq = M%ncg_q;  ncr = M%ncg_r;  ncs = M%ncg_s
+      mcq_b = 1 - nb;  pcq_b = ncq + nb
+      mcr_b = 1 - nb;  pcr_b = ncr + nb
+      mcs_b = 1 - nb;  pcs_b = ncs + nb
+
+      ! Allocate memory variable arrays on the COARSE grid (with ghost nodes, n_mech mechanisms)
+      allocate( M%eta4Qcg (mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      allocate( M%Deta4Qcg(mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      M%eta4Qcg = 0.0_wp;  M%Deta4Qcg = 0.0_wp
+      allocate( M%eta5Qcg (mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      allocate( M%Deta5Qcg(mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      M%eta5Qcg = 0.0_wp;  M%Deta5Qcg = 0.0_wp
+      allocate( M%eta6Qcg (mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      allocate( M%Deta6Qcg(mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      M%eta6Qcg = 0.0_wp;  M%Deta6Qcg = 0.0_wp
+      allocate( M%eta7Qcg (mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      allocate( M%Deta7Qcg(mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      M%eta7Qcg = 0.0_wp;  M%Deta7Qcg = 0.0_wp
+      allocate( M%eta8Qcg (mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      allocate( M%Deta8Qcg(mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      M%eta8Qcg = 0.0_wp;  M%Deta8Qcg = 0.0_wp
+      allocate( M%eta9Qcg (mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      allocate( M%Deta9Qcg(mcq_b:pcq_b, mcr_b:pcr_b, mcs_b:pcs_b, n_mech) )
+      M%eta9Qcg = 0.0_wp;  M%Deta9Qcg = 0.0_wp
+
+      ! Compute Q_S and Q_P from velocity ratio (on full fine grid)
+      do i = G%C%mq, G%C%pq
+         do j = G%C%mr, G%C%pr
+            do k = G%C%ms, G%C%ps
+               M%Qs_inv_Qcg(i,j,k) = 1.0_wp / (c * sqrt(M%M(i,j,k,2)/M%M(i,j,k,3)))
+               M%Qp_inv_Qcg(i,j,k) = 0.5_wp * M%Qs_inv_Qcg(i,j,k)
+            end do
+         end do
+      end do
+
+      ! Correct unrelaxed moduli so relaxed (low-freq) velocity matches input
+      wref = 2.0_wp * pi * fref
+
+      do i = G%C%mq, G%C%pq
+         do j = G%C%mr, G%C%pr
+            do k = G%C%ms, G%C%ps
+
+               val_S = 0.0_wp
+               val_P = 0.0_wp
+               do l = 1, n_mech
+                  denom_S = (wref**2 * M%tau_Qcg(l)**2 + 1.0_wp) &
+                             * (1.0_wp / M%Qs_inv_Qcg(i,j,k))
+                  denom_P = (wref**2 * M%tau_Qcg(l)**2 + 1.0_wp) &
+                             * (1.0_wp / M%Qp_inv_Qcg(i,j,k))
+                  val_S = val_S + M%weight_Qcg(l) / denom_S
+                  val_P = val_P + M%weight_Qcg(l) / denom_P
+               end do
+
+               vs = sqrt(M%M(i,j,k,2) / M%M(i,j,k,3))
+               vp = sqrt((M%M(i,j,k,1) + 2.0_wp*M%M(i,j,k,2)) / M%M(i,j,k,3))
+               mu_unrelax_S = M%M(i,j,k,3) * vs**2 / (1.0_wp - val_S)
+               mu_unrelax_P = M%M(i,j,k,3) * vp**2 / (1.0_wp - val_P)
+               vs = sqrt(mu_unrelax_S / M%M(i,j,k,3))
+               vp = sqrt(mu_unrelax_P / M%M(i,j,k,3))
+
+               M%M(i,j,k,2) = vs**2 * M%M(i,j,k,3)
+               M%M(i,j,k,1) = vp**2 * M%M(i,j,k,3) - 2.0_wp * M%M(i,j,k,2)
+
+            end do
+         end do
+      end do
+
+   end subroutine init_anelastic_Qcg_properties
+
+
   !> initialize material properties
   subroutine init_material(M, G, I, physics,problem, rho_s_p, nb)
 

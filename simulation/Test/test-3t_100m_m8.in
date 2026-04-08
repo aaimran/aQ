@@ -1,7 +1,7 @@
 ! waveqlab3d input file
 
 &problem_list
- name = 'withers_test-2a_traditional_6_res-200m_anelastic_pml-0km',
+ name = 'withers_test-3t8_traditional_6_res-100m_anelastic_pml-0km',
  problem = 'TPV5',
  nblocks = 2,
  t_final =  6d0,
@@ -11,7 +11,7 @@
  material_source='hardcode',
  fd_type = 'traditional',
  order = 6,
- response = 'anelastic-Q',
+ response = 'anelastic-Qn',
  w_stride = 1,
  w_fault = F /
 
@@ -23,12 +23,17 @@
 ! Resulting Q_S ~ 50 at V_S = 3.464 km/s (rho_s_p(2) parameter)
 ! Resulting Q_P ~ 100
 
-&anelastic_Q_list
- c    = 14.4328d0,
- fref = 1.0d0 /
+&anelastic_Qn_list
+ n_mech  = 8,
+ c       = 14.4328d0,
+ fref    = 1.0d0,
+ fmin    = 0.01d0,
+ fmax    = 49.7d0,
+ weights = 0.3112d0, 0.001d0, 0.001d0, 1.0117d0, 0.7123d0, 0.8339d0, 0.1616d0, 1.6821d0
+/
 
 &block_list
-btp(1)%nqrs = 126, 101, 201,
+btp(1)%nqrs = 251, 201, 401,
 btp(1)%aqrs = 0d0, 0d0, 0d0,
 btp(1)%bqrs = 25d0, 20d0, 40d0,
 btp(1)%rho_s_p = 2.7d0, 3.464d0, 6d0,
@@ -38,7 +43,7 @@ btp(1)%pml_lqrs = F, F, F,
 btp(1)%pml_rqrs = F, F, F,
 btp(1)%npml = 6, 
 
-btp(2)%nqrs = 126, 101, 201,
+btp(2)%nqrs = 251, 201, 401,
 btp(2)%aqrs = 25d0, 0d0, 0d0,
 btp(2)%bqrs = 50d0, 20d0, 40d0,
 btp(2)%rho_s_p = 2.7d0, 3.464d0, 6d0,

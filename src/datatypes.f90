@@ -82,6 +82,21 @@ module datatypes
       ! Six stress-component memory variables for anelastic-Qn (n_mech_Qn mechanisms each)
       real(kind = wp), dimension(:,:,:,:), allocatable :: eta4Qn,eta5Qn,eta6Qn,eta7Qn,eta8Qn,eta9Qn
       real(kind = wp), dimension(:,:,:,:), allocatable :: Deta4Qn,Deta5Qn,Deta6Qn,Deta7Qn,Deta8Qn,Deta9Qn
+
+      ! --- anelastic-Qcg: spatially coarse-grained N-mechanism attenuation (response == 'anelastic-Qcg')
+      ! Memory variables eta/Deta stored on a coarse grid of spacing cg_factor*h, saving memory by cg_factor^3.
+      ! Qs_inv/Qp_inv remain on the full fine grid; trilinear interpolation used at non-coarse points.
+      logical :: anelastic_Qcg = .false.
+      integer :: n_mech_Qcg   = 0        ! number of mechanisms (from namelist)
+      integer :: cg_factor_Qcg = 1       ! spatial coarsening factor (1 = identical to Qn)
+      integer :: mcg_q, mcg_r, mcg_s     ! coarse-grid lower-bound fine indices
+      integer :: ncg_q, ncg_r, ncg_s     ! coarse-grid point counts (without ghost nodes)
+      real(kind = wp) :: fref_Qcg = 1.0_wp
+      real(kind = wp), dimension(:,:,:), allocatable :: Qp_inv_Qcg, Qs_inv_Qcg  ! fine grid
+      real(kind = wp), dimension(:),     allocatable :: tau_Qcg, weight_Qcg     ! size n_mech_Qcg
+      ! Memory variables on the COARSE grid (dims: coarse-q x coarse-r x coarse-s x n_mech_Qcg)
+      real(kind = wp), dimension(:,:,:,:), allocatable :: eta4Qcg,eta5Qcg,eta6Qcg,eta7Qcg,eta8Qcg,eta9Qcg
+      real(kind = wp), dimension(:,:,:,:), allocatable :: Deta4Qcg,Deta5Qcg,Deta6Qcg,Deta7Qcg,Deta8Qcg,Deta9Qcg
    end type block_material
  
    !> block_plastic datatype to hold Drucker-Prager plasticity variables

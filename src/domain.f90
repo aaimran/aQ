@@ -126,12 +126,12 @@ contains
      if (is_master()) then
        response_norm = trim(adjustl(response))
        select case (response_norm)
-       case ('elastic','plastic','anelastic','low-pass','anelastic-Q','anelastic-Q8','anelastic-Qn')
+       case ('elastic','plastic','anelastic','low-pass','anelastic-Q','anelastic-Q8','anelastic-Qn','anelastic-Qcg')
          ! ok
        case default
          invalid_response = .true.
          write(*,*) ':: Error: invalid response option in &problem_list: "' // trim(response_norm) // '"'
-         write(*,*) ':: Supported response options are: elastic, plastic, anelastic, low-pass, anelastic-Q, anelastic-Q8, anelastic-Qn'
+         write(*,*) ':: Supported response options are: elastic, plastic, anelastic, low-pass, anelastic-Q, anelastic-Q8, anelastic-Qn, anelastic-Qcg'
        end select
      end if
 
